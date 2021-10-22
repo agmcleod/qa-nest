@@ -1,0 +1,28 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Question {
+  id: Int!
+  title: String!
+  text: String!
+  user: User!
+}
+
+type User {
+  id: Int!
+  username: String!
+  questions: [Question!]!
+}
+
+type Query {
+  user(id: Int!): User!
+  users: [User!]!
+  question(id: Int!): Question!
+  questions: [Question!]!
+}
+
+type Mutation {
+  createQuestion(text: String!, title: String!): Question!
+  updateQuestion(text: String!, title: String!, id: Float!): Question!
+}
