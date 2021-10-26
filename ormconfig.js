@@ -9,4 +9,5 @@ module.exports = {
     migrationsDir: 'migration',
   },
   synchronize: process.env.NODE_ENV === 'test',
+  logging: true,
 }

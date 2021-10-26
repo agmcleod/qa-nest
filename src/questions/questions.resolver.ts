@@ -15,7 +15,9 @@ import { QuestionsService } from './questions.service'
 import { UsersService } from '../users/users.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { CurrentUser } from '../auth/current-user.decorator'
-import { AuthUser } from 'src/auth/auth-user.dto'
+import { AuthUser } from '../auth/auth-user.dto'
+import { Pagination } from '../common/pagination.entity'
+import { UsersLoader } from '../users/users.loader'
 
 @UseGuards(JwtAuthGuard)
 @Resolver(() => Question)
@@ -23,6 +25,7 @@ export class QuestionsResolver {
   constructor(
     private usersService: UsersService,
     private questionsService: QuestionsService,
+    private usersLoader: UsersLoader,
   ) {}
 
   @Query(() => Question)
@@ -31,13 +34,24 @@ export class QuestionsResolver {
   }
 
   @Query(() => [Question])
-  async questions() {
-    return this.questionsService.findAll()
+  async questions(
+    @Args('offset', { type: () => Int }) offset: number,
+    @Args('limit', { type: () => Int }) limit: number,
+  ) {
+    return this.questionsService.findAll(offset, limit)
+  }
+
+  @Query(() => Pagination)
+  async questionsCount() {
+    const count = await this.questionsService.count()
+    return {
+      count,
+    }
   }
 
   @ResolveField()
   async user(@Parent() question: Question) {
-    return this.usersService.findById(question.id)
+    return this.usersLoader.load(question.userId)
   }
 
   @Mutation(() => Question)
@@ -51,7 +65,7 @@ export class QuestionsResolver {
 
   @Mutation(() => Question)
   async updateQuestion(
-    @Args({ name: 'id' }) id: number,
+    @Args({ name: 'id', type: () => Int }) id: number,
     @Args({ name: 'title' }) title: string,
     @Args({ name: 'text' }) text: string,
     @CurrentUser() user: AuthUser,

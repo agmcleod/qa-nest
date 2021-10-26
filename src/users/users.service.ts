@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, getManager } from 'typeorm'
+import { Repository, getManager, In } from 'typeorm'
 
 import { User } from './user.entity'
 import { BcryptService } from '../common/services/bcrypt.service'
@@ -25,6 +25,14 @@ export class UsersService {
     return this.usersRepository.findOne({
       where: {
         id,
+      },
+    })
+  }
+
+  findAllByIds(ids: readonly number[]): Promise<User[]> {
+    return this.usersRepository.find({
+      where: {
+        id: In(ids as number[]),
       },
     })
   }

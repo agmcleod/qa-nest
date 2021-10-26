@@ -17,7 +17,14 @@ export class QuestionsService {
       where: {
         user: userId,
       },
+      order: {
+        updatedAt: 'DESC',
+      },
     })
+  }
+
+  count(): Promise<number> {
+    return this.questionRepository.count()
   }
 
   findById(id: number): Promise<Question> {
@@ -28,8 +35,14 @@ export class QuestionsService {
     })
   }
 
-  findAll(): Promise<Question[]> {
-    return this.questionRepository.find()
+  findAll(offset?: number, limit?: number): Promise<Question[]> {
+    return this.questionRepository.find({
+      skip: offset,
+      take: limit,
+      order: {
+        createdAt: 'DESC',
+      },
+    })
   }
 
   create(title: string, text: string, userId: number): Promise<Question> {

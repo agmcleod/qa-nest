@@ -9,7 +9,8 @@ import { AppService } from './app.service'
 import { UsersModule } from './users/users.module'
 import { BcryptService } from './common/services/bcrypt.service'
 import { QuestionsModule } from './questions/questions.module'
-import { AuthModule } from './auth/auth.module';
+import { AuthModule } from './auth/auth.module'
+import { CommentsModule } from './comments/comments.module'
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AuthModule } from './auth/auth.module';
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
     }),
     AuthModule,
+    CommentsModule,
   ],
   controllers: [AppController],
   providers: [AppService, BcryptService],
