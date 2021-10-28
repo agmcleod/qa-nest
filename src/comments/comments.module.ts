@@ -7,9 +7,16 @@ import { CommentsResolver } from './comments.resolver'
 import { UsersService } from '../users/users.service'
 import { BcryptService } from '../common/services/bcrypt.service'
 import { User } from '../users/user.entity'
+import { UsersLoader } from '../users/users.loader'
 
 @Module({
   imports: [TypeOrmModule.forFeature([Comment, User])],
-  providers: [CommentsService, CommentsResolver, UsersService, BcryptService],
+  providers: [
+    CommentsService,
+    CommentsResolver,
+    UsersService,
+    BcryptService,
+    UsersLoader,
+  ],
 })
 export class CommentsModule {}

@@ -21,6 +21,27 @@ export class CommentsService {
     })
   }
 
+  async getCountByQuestionIds(
+    ids: readonly number[],
+  ): Promise<{ count: number }[]> {
+    const results = await this.commentRepository
+      .createQueryBuilder('comment')
+      .select('comment.questionId', 'questionId')
+      .addSelect('COUNT(comment.id)', 'count')
+      .where('comment.questionId in (:...ids)', { ids })
+      .groupBy('comment.questionId')
+      .getRawMany()
+
+    const idResults = results.reduce((obj, row) => {
+      obj[row.questionId] = row
+      return obj
+    }, {})
+
+    return ids.map((id) => {
+      return idResults[id] ? idResults[id] : { count: 0 }
+    })
+  }
+
   findByQuestion(questionId: number): Promise<Comment[]> {
     return this.commentRepository.find({
       where: {

@@ -6,13 +6,6 @@ type Comment {
   id: Int!
   text: String!
   user: User!
-}
-
-type Question {
-  id: Int!
-  title: String!
-  text: String!
-  user: User!
   updatedAt: DateTime!
 }
 
@@ -21,10 +14,21 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type QuestionType {
+  id: Int!
+  title: String!
+  text: String!
+  user: User!
+  comments: Comment!
+  updatedAt: DateTime!
+  commentCount: Int!
+  commentsCount: Int!
+}
+
 type User {
   id: Int!
   username: String!
-  questions: [Question!]!
+  questions: [QuestionType!]!
 }
 
 type Pagination {
@@ -34,16 +38,16 @@ type Pagination {
 type Query {
   user(id: Int!): User!
   users: [User!]!
-  question(id: Int!): Question!
-  questions(limit: Int!, offset: Int!): [Question!]!
+  question(id: Int!): QuestionType!
+  questions(limit: Int!, offset: Int!): [QuestionType!]!
   questionsCount: Pagination!
   comment(id: Int!): Comment!
   comments(questionId: Int!): [Comment!]!
 }
 
 type Mutation {
-  createQuestion(text: String!, title: String!): Question!
-  updateQuestion(text: String!, title: String!, id: Int!): Question!
+  createQuestion(text: String!, title: String!): QuestionType!
+  updateQuestion(text: String!, title: String!, id: Int!): QuestionType!
   createComment(questionId: Int!, text: String!): Comment!
   updateComment(text: String!, id: Int!): Comment!
 }

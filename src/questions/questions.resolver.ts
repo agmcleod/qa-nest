@@ -10,35 +10,37 @@ import {
 import { UseGuards } from '@nestjs/common'
 import { UserInputError, ForbiddenError } from 'apollo-server-express'
 
-import { Question } from './question.entity'
+import { QuestionType } from './question.objectType'
 import { QuestionsService } from './questions.service'
-import { UsersService } from '../users/users.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { AuthUser } from '../auth/auth-user.dto'
 import { Pagination } from '../common/pagination.entity'
 import { UsersLoader } from '../users/users.loader'
+import { CommentsLoader } from '../comments/comments.loader'
 
 @UseGuards(JwtAuthGuard)
-@Resolver(() => Question)
+@Resolver(() => QuestionType)
 export class QuestionsResolver {
   constructor(
-    private usersService: UsersService,
     private questionsService: QuestionsService,
     private usersLoader: UsersLoader,
+    private commentsLoader: CommentsLoader,
   ) {}
 
-  @Query(() => Question)
+  @Query(() => QuestionType)
   async question(@Args('id', { type: () => Int }) id: number) {
-    return this.questionsService.findById(id)
+    const question = await this.questionsService.findById(id)
+    return QuestionType.fromQuestionEntity(question)
   }
 
-  @Query(() => [Question])
+  @Query(() => [QuestionType])
   async questions(
     @Args('offset', { type: () => Int }) offset: number,
     @Args('limit', { type: () => Int }) limit: number,
   ) {
-    return this.questionsService.findAll(offset, limit)
+    const results = await this.questionsService.findAll(offset, limit)
+    return results.map(QuestionType.fromQuestionEntity)
   }
 
   @Query(() => Pagination)
@@ -50,20 +52,27 @@ export class QuestionsResolver {
   }
 
   @ResolveField()
-  async user(@Parent() question: Question) {
+  async user(@Parent() question: QuestionType) {
     return this.usersLoader.load(question.userId)
   }
 
-  @Mutation(() => Question)
+  @ResolveField(() => Int)
+  async commentsCount(@Parent() question: QuestionType) {
+    const res = await this.commentsLoader.load(question.id)
+    return res.count
+  }
+
+  @Mutation(() => QuestionType)
   async createQuestion(
     @Args({ name: 'title' }) title: string,
     @Args({ name: 'text' }) text: string,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.questionsService.create(title, text, user.userId)
+    const q = await this.questionsService.create(title, text, user.userId)
+    return QuestionType.fromQuestionEntity(q)
   }
 
-  @Mutation(() => Question)
+  @Mutation(() => QuestionType)
   async updateQuestion(
     @Args({ name: 'id', type: () => Int }) id: number,
     @Args({ name: 'title' }) title: string,
@@ -78,6 +87,7 @@ export class QuestionsResolver {
       throw new ForbiddenError('Cannot access this question')
     }
 
-    return this.questionsService.update(id, title, text)
+    const q = await this.questionsService.update(id, title, text)
+    return QuestionType.fromQuestionEntity(q)
   }
 }

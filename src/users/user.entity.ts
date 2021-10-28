@@ -2,6 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm'
 import { Field, Int, ObjectType } from '@nestjs/graphql'
 
 import { Question } from '../questions/question.entity'
+import { QuestionType } from '../questions/question.objectType'
 
 @Entity()
 @ObjectType()
@@ -18,6 +19,6 @@ export class User {
   password: string
 
   @OneToMany(() => Question, (question) => question.user)
-  @Field((type) => [Question])
+  @Field(() => [QuestionType])
   questions: Question[]
 }

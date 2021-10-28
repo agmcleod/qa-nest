@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm'
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm'
 import { Field, Int, ObjectType } from '@nestjs/graphql'
 
 import { User } from '../users/user.entity'
@@ -27,4 +34,18 @@ export class Comment {
 
   @ManyToOne(() => Question, (question) => question.comments)
   question: Question
+
+  @CreateDateColumn({
+    type: 'timestamp with time zone',
+    default: () => 'now()',
+  })
+  createdAt: Date
+
+  @UpdateDateColumn({
+    type: 'timestamp with time zone',
+    nullable: true,
+    onUpdate: 'now()',
+  })
+  @Field()
+  updatedAt: Date
 }

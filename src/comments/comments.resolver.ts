@@ -13,16 +13,16 @@ import { ForbiddenError, UserInputError } from 'apollo-server-express'
 import { Comment } from './comment.entity'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { CommentsService } from './comments.service'
-import { UsersService } from '../users/users.service'
 import { AuthUser } from '../auth/auth-user.dto'
 import { CurrentUser } from '../auth/current-user.decorator'
+import { UsersLoader } from '../users/users.loader'
 
 @UseGuards(JwtAuthGuard)
 @Resolver(() => Comment)
 export class CommentsResolver {
   constructor(
     private commentsService: CommentsService,
-    private usersService: UsersService,
+    private usersLoader: UsersLoader,
   ) {}
 
   @Query(() => Comment)
@@ -37,7 +37,7 @@ export class CommentsResolver {
 
   @ResolveField()
   async user(@Parent() comment: Comment) {
-    return this.usersService.findById(comment.userId)
+    return this.usersLoader.load(comment.userId)
   }
 
   @Mutation(() => Comment)

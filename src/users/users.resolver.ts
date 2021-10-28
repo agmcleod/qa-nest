@@ -9,6 +9,7 @@ import {
 import { UseGuards } from '@nestjs/common'
 
 import { User } from './user.entity'
+import { QuestionType } from '../questions/question.objectType'
 import { UsersService } from './users.service'
 import { QuestionsService } from '../questions/questions.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
@@ -33,6 +34,8 @@ export class UsersResolver {
 
   @ResolveField()
   async questions(@Parent() user: User) {
-    return this.questionsService.findByUser(user.id)
+    const results = await this.questionsService.findByUser(user.id)
+
+    return results.map(QuestionType.fromQuestionEntity)
   }
 }
