@@ -1,0 +1,141 @@
+Description: >
+
+  Creates a PostgreSQL database instance in RDS within the private subnet.
+  You must provide the DB name and master credentials upon stack creation.
+
+Parameters:
+  EnvironmentName:
+    Description: The name of the environment
+    Type: String
+    AllowedValues:
+      - staging
+      - production
+      - development
+
+  VpcStack:
+    Description: Name of the VPC stack for this environment
+    Type: String
+
+  SgStack:
+    Description: Name of the security groups stack for this environment
+    Type: String
+
+  DBInstanceIdentifer:
+    Type: String
+
+  DBName:
+    Description: The database name for the DB instance.
+    Type: String
+
+  DBUsername:
+    Description: The master user name for the DB instance
+    Type: String
+
+  DBPort:
+    Default: 5432
+    Type: Number
+
+Mappings:
+  # It is not uncommon for your staging vs production databases to have different
+  # resource requirements (capacity, instance class, etc). We use a mapping
+  # based on the EnvironmentName stack parameter to define these requirements.
+  # Alternatively you could make all of these stack parameters and pass different
+  # values when creating the different environments. The choice is yours but
+  # this provides handy documentation of the db specs in each environment.
+
+  EnvironmentProperties:
+    development:
+      AllocatedStorage: '20'
+      DBInstanceClass: db.t2.micro
+      Iops: ''
+      MultiAZ: false
+      StorageEncrypted: false
+      StorageType: gp2
+      MasterUserPassword: '{{resolve:ssm-secure:/development/TYPEORM_PASSWORD:1}}'
+    staging:
+      AllocatedStorage: '20'
+      DBInstanceClass: db.t2.micro
+      Iops: ''
+      MultiAZ: false
+      StorageEncrypted: false
+      StorageType: gp2
+      MasterUserPassword: '{{resolve:ssm-secure:/staging/TYPEORM_PASSWORD:1}}'
+    production:
+      AllocatedStorage: '20'
+      DBInstanceClass: db.t2.small
+      Iops: ''
+      MultiAZ: true
+      StorageEncrypted: true
+      StorageType: gp2
+      MasterUserPassword: '{{resolve:ssm-secure:/production/TYPEORM_PASSWORD:1}}'
+
+Resources:
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: DB Private Subnet
+      SubnetIds: !Split
+        - ','
+        - Fn::ImportValue: !Sub '${VpcStack}-PrivateSubnets'
+
+  DB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage:
+        !FindInMap [
+          EnvironmentProperties,
+          !Ref EnvironmentName,
+          'AllocatedStorage',
+        ]
+      DBInstanceClass:
+        !FindInMap [
+          EnvironmentProperties,
+          !Ref EnvironmentName,
+          'DBInstanceClass',
+        ]
+      DBInstanceIdentifier: !Sub ${DBInstanceIdentifer}
+      DBName: !Sub ${DBName}
+      DBSubnetGroupName: !Ref DbSubnetGroup
+      Engine: 'postgres'
+      EngineVersion: '11.1'
+      Iops: !FindInMap [EnvironmentProperties, !Ref EnvironmentName, 'Iops']
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword:
+        !FindInMap [
+          EnvironmentProperties,
+          !Ref EnvironmentName,
+          'MasterUserPassword',
+        ]
+      MultiAZ:
+        !FindInMap [EnvironmentProperties, !Ref EnvironmentName, 'MultiAZ']
+      Port: !Ref DBPort
+      StorageEncrypted:
+        !FindInMap [
+          EnvironmentProperties,
+          !Ref EnvironmentName,
+          'StorageEncrypted',
+        ]
+      StorageType:
+        !FindInMap [EnvironmentProperties, !Ref EnvironmentName, 'StorageType']
+      VPCSecurityGroups:
+        - Fn::ImportValue: !Sub '${SgStack}-PostgresSecurityGroup'
+    DeletionPolicy: Snapshot
+
+Outputs:
+  DBEndpoint:
+    Description: The database endpoint address
+    Value: !GetAtt DB.Endpoint.Address
+    Export:
+      Name: !Sub '${AWS::StackName}-DBEndpoint'
+
+  DBUsername:
+    Description: The database username
+    Value: !Ref DBUsername
+    Export:
+      Name: !Sub '${AWS::StackName}-DBUsername'
+
+  DBName:
+    Description: The database name
+    Value: !Ref DBName
+    Export:
+      Name: !Sub '${AWS::StackName}-DBName'

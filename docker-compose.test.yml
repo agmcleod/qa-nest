@@ -1,0 +1,41 @@
+version: '3.7'
+services:
+  test_api:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    depends_on:
+      - test_db
+    stdin_open: true
+    container_name: qa-api_test_api
+    environment:
+      - TYPEORM_ENTITIES=src/**/*.entity{.ts,.js}
+      - TYPEORM_DATABASE=qa_api_test
+      - TYPEORM_HOST=test_db
+      - TYPEORM_PORT=5432
+      - TYPEORM_USERNAME=postgres
+      - TYPEORM_PASSWORD=password
+      - JWT_SIGN_KEY=8b37634be1b439466ad28cd4078a402f6f7a39ae127f0c98ab8f50498435ad75
+      - TYPEORM_LOGGING=false
+    volumes:
+      - .:/api
+      - /api/dist
+      - /api/node_modules
+    networks:
+      - test_qa_net
+
+  test_db:
+    # Uses default port 5432
+    image: postgres:12-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: qa_api_test
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_HOST_AUTH_METHOD: trust
+    networks:
+      - test_qa_net
+
+networks:
+  test_qa_net:
+    name: 'test_qa_net'

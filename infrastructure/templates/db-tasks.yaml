@@ -1,0 +1,76 @@
+Description: >
+  Template for an ECS task to run the DB migrations.
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    AllowedValues:
+      - staging
+      - production
+      - development
+
+  EcrStack:
+    Type: String
+    Description: Name of the ECR registry stack
+
+  ImageTag:
+    Type: String
+    Description: Docker image tag to deploy
+    Default: latest
+
+  RolesStack:
+    Type: String
+    Description: Name of the stack for Task roles
+
+  DbStack:
+    Description: Name of the stack containing the Postgres database
+    Type: String
+
+Resources:
+  DBMigrateTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${EnvironmentName}-db-migrate
+      RequiresCompatibilities:
+        - FARGATE
+      Memory: 512
+      Cpu: 256
+      NetworkMode: awsvpc
+      TaskRoleArn:
+        Fn::ImportValue: !Sub '${RolesStack}-TaskRoleArn'
+      ExecutionRoleArn:
+        Fn::ImportValue: !Sub '${RolesStack}-TaskExecutionRoleArn'
+      ContainerDefinitions:
+        - Name: db-migrate
+          Command:
+            - 'sh'
+            - '-c'
+            - 'node ./env.js && yarn typeorm migration:run'
+          Image: !Join
+            - ':'
+            - - Fn::ImportValue: !Sub '${EcrStack}-RepositoryUrl'
+              - !Ref ImageTag
+          Environment:
+            - Name: NODE_ENV
+              Value: !Ref EnvironmentName
+            - Name: AWS_REGION
+              Value: !Ref AWS::Region
+            - Name: TYPEORM_DATABASE
+              Value: postgres
+            - Name: TYPEORM_HOST
+              Value:
+                Fn::ImportValue: !Sub '${DbStack}-DBEndpoint'
+            - Name: TYPEORM_USERNAME
+              Value:
+                Fn::ImportValue: !Sub '${DbStack}-DBUsername'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub ${AWS::StackName}-DBMigrate
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: db-migrate
+  DBMigrateLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub ${AWS::StackName}-DBMigrate
+      RetentionInDays: 30

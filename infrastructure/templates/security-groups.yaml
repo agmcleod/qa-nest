@@ -1,0 +1,135 @@
+Description: >
+
+  Creates security groups required throughout other stacks.
+
+Parameters:
+  EnvironmentName:
+    Description: The name of the environment
+    Type: String
+    AllowedValues:
+      - staging
+      - production
+      - development
+
+  VpcStack:
+    Description: VPC stack in which to create security groups
+    Type: String
+
+Resources:
+  # This security group defines who/where is allowed to access the ECS hosts directly.
+  # If you want to be able to SSH into your ECS hosts, you can add such an ingress rule here.
+  ECSHostSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub '${VpcStack}-VpcId'
+      GroupDescription: Access to the ECS hosts and the tasks/containers that run on them
+      SecurityGroupIngress:
+        # Allow inbound access to ECS from the ELB
+        - SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+          IpProtocol: -1
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-ECS-Hosts
+
+  # This security group defines who/where is allowed to access the Application Load Balancer.
+  # By default, we've opened this up to the public internet (0.0.0.0/0).
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub '${VpcStack}-VpcId'
+      GroupDescription: Access to the load balancer that sits in front of ECS
+      SecurityGroupIngress:
+        # Allow access from anywhere to our ECS services
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-LoadBalancers
+
+  # This security group defines what resources within the VPC are able to
+  # access the Postgres database.
+  PostgresSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub '${VpcStack}-VpcId'
+      GroupDescription: Access to the RDS Postgres database
+      SecurityGroupIngress:
+        # Allow inbound access to the database from ECS hosts
+        - SourceSecurityGroupId: !Ref ECSHostSecurityGroup
+          FromPort: 5432
+          ToPort: 5432
+          IpProtocol: tcp
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Postgres
+
+  RedisSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub '${VpcStack}-VpcId'
+      GroupDescription: Access to the ElastiCache Redis Cluster
+      SecurityGroupIngress:
+        # Allow inbound access to the redis cluster from ECS hosts
+        - SourceSecurityGroupId: !Ref ECSHostSecurityGroup
+          FromPort: 6379
+          ToPort: 6379
+          IpProtocol: tcp
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Redis
+
+  ElasticsearchSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub '${VpcStack}-VpcId'
+      GroupDescription: Access to the Elasticsearch Cluster
+      SecurityGroupIngress:
+        # Allow inbound access to the Elasticsearch cluster from ECS hosts
+        - SourceSecurityGroupId: !Ref ECSHostSecurityGroup
+          FromPort: 443
+          ToPort: 443
+          IpProtocol: tcp
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Elasticsearch
+
+Outputs:
+  # Any security groups we created that are needed by resources in other
+  # stacks should be exported here.
+
+  ECSHostSecurityGroup:
+    Description: A reference to the security group for ECS hosts
+    Value: !Ref ECSHostSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-ECSHostSecurityGroup'
+
+  LoadBalancerSecurityGroup:
+    Description: A reference to the security group for load balancers
+    Value: !Ref LoadBalancerSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-LoadBalancerSecurityGroup'
+
+  PostgresSecurityGroup:
+    Description: A reference to the security group for the Postgres RDS instance
+    Value: !Ref PostgresSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-PostgresSecurityGroup'
+
+  RedisSecurityGroup:
+    Description: A reference to the security group for the elasticache redis instance
+    Value: !Ref RedisSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-RedisSecurityGroup'
+
+  ElasticsearchSecurityGroup:
+    Description: A reference to the security group for the Elasticsearch instance
+    Value: !Ref ElasticsearchSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-ElasticsearchSecurityGroup'

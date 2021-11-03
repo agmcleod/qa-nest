@@ -1,0 +1,42 @@
+Description: >
+
+  Creates an ECR repository with a lifecycle policy to cap the number of retained untagged images.
+
+Parameters:
+
+  RepositoryName:
+    Description: Provide a unique name for the ECR repository.
+    Type: String
+
+Resources:
+
+  Repository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref RepositoryName
+      LifecyclePolicy:
+        LifecyclePolicyText: >
+          {
+            "rules": [
+              {
+                "rulePriority": 10,
+                "description": "Cap the number of retained untagged images retained",
+                "selection": {
+                  "tagStatus": "untagged",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 10
+                },
+                "action": {
+                  "type": "expire"
+                }
+              }
+            ]
+          }
+
+Outputs:
+
+  RepositoryUrl:
+    Description: Repository URL
+    Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}
+    Export:
+      Name: !Sub "${AWS::StackName}-RepositoryUrl"

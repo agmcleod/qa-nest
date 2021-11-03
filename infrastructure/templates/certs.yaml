@@ -1,0 +1,29 @@
+Description: >
+
+  Creates SSL certificates in Amazon Certificate Manager to be used for the Application
+
+Parameters:
+  EnvironmentName:
+    Description: The name of the environment
+    Type: String
+    AllowedValues:
+      - staging
+      - production
+      - development
+
+  ApiDomainName:
+    Type: String
+
+Resources:
+  ApiCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref ApiDomainName
+      ValidationMethod: EMAIL
+
+Outputs:
+  ApiCertificateArn:
+    Description: ARN of the SSL certificate for the API
+    Value: !Ref ApiCertificate
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiCertificateArn'
