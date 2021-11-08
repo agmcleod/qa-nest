@@ -46,9 +46,10 @@ export class QuestionsService {
   }
 
   create(title: string, text: string, userId: number): Promise<Question> {
-    const question = this.questionRepository.create()
-    question.title = title
-    question.text = text
+    const question = this.questionRepository.create({
+      text,
+      title,
+    })
     const user = new User()
     user.id = userId
     question.user = user

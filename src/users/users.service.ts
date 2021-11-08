@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, getManager, In } from 'typeorm'
+import { Repository, In } from 'typeorm'
 
 import { User } from './user.entity'
 import { BcryptService } from '../common/services/bcrypt.service'
@@ -43,7 +43,7 @@ export class UsersService {
 
   async register(username: string, password: string): Promise<void> {
     const hash = await this.bcryptService.hashString(password)
-    const user = getManager().create(User, {
+    const user = this.usersRepository.create({
       username,
       password: hash,
     })
